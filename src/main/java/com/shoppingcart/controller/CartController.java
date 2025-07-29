@@ -10,7 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/carts")
@@ -24,9 +23,9 @@ public class CartController {
 
     @GetMapping("/{customerId}")
     public ResponseEntity<Cart> getCart(@PathVariable String customerId) {
-        Optional<Cart> cart = cartService.getCartByCustomerId(customerId);
-        return cart.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Cart cart = cartService.getCartByCustomerId(customerId)
+            .orElseThrow(() -> new java.util.NoSuchElementException("Cart not found for customerId: " + customerId));
+        return ResponseEntity.ok(cart);
     }
 
     @PostMapping
