@@ -1,0 +1,9 @@
+# Dev-specific configuration
+spring:
+  data:
+    mongodb:
+      uri: mongodb+srv://ivanzub:It4WMVHM2yJiKSTB@cluster0.pbqeyxv.mongodb.net/ht_shopping_cart?retryWrites=true&w=majority&appName=Cluster0
+
+logging:
+  level:
+    org.springframework: DEBUG

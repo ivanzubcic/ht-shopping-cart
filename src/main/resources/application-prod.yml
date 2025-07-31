@@ -1,0 +1,10 @@
+# Prod-specific configuration
+spring:
+  data:
+    mongodb:
+      uri: #DB uri
+
+logging:
+  level:
+    org.springframework: INFO
+

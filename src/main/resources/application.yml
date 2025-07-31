@@ -2,15 +2,14 @@ server:
   port: 8080
 
 spring:
-  data:
-    mongodb:
-      uri: mongodb+srv://ivanzub:It4WMVHM2yJiKSTB@cluster0.pbqeyxv.mongodb.net/ht_shopping_cart?retryWrites=true&w=majority&appName=Cluster0
-  application:
+  profiles:
+    active: dev
+application:
     name: ht-shopping-cart
 
 logging:
   level:
-    org.springframework: DEBUG
+    org.springframework: INFO
   file:
     name: logs/shopping-cart.log
     max-size: 10MB
