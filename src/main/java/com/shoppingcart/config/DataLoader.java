@@ -55,6 +55,11 @@ public class DataLoader implements CommandLineRunner {
             item.setOfferId(OFFER_IDS[random.nextInt(OFFER_IDS.length)]);
             item.setAction(ACTIONS[random.nextInt(ACTIONS.length)]);
             item.setPrices(List.of(generateRandomPrice()));
+            // Set random actionTimestamp within one week from today
+            long now = java.time.Instant.now().getEpochSecond();
+            long weekSeconds = 7 * 24 * 60 * 60;
+            long randomOffset = (long) (random.nextDouble() * weekSeconds);
+            item.setActionTimestamp(java.time.Instant.ofEpochSecond(now - randomOffset));
             items.add(item);
         }
         return items;

@@ -5,6 +5,8 @@ import com.shoppingcart.ShoppingCartApplication;
 import com.shoppingcart.model.Cart;
 import com.shoppingcart.model.Item;
 import com.shoppingcart.model.Price;
+import com.shoppingcart.repository.CartRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -15,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,10 +32,25 @@ public class CartControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private CartRepository cartRepository;
+
+    private final Set<String> testCustomerIds = new HashSet<>();
+
+    @AfterEach
+    void cleanUp() {
+        // Remove only carts inserted by this test class
+        for (String customerId : testCustomerIds) {
+            cartRepository.findByCustomerId(customerId).ifPresent(cart -> cartRepository.deleteById(cart.getId()));
+        }
+        testCustomerIds.clear();
+    }
+
     @Test
     void testCreateAndGetCart() throws Exception {
         Cart cart = new Cart();
         cart.setCustomerId("test-customer");
+        testCustomerIds.add("test-customer");
         Item item = new Item();
         item.setOfferId("tv-001");
         item.setAction(Item.Action.ADD);
@@ -61,6 +80,7 @@ public class CartControllerIntegrationTest {
         // Create cart first
         Cart cart = new Cart();
         cart.setCustomerId("delete-customer");
+        testCustomerIds.add("delete-customer");
         Item item = new Item();
         item.setOfferId("tv-002");
         item.setAction(Item.Action.ADD);
@@ -89,6 +109,7 @@ public class CartControllerIntegrationTest {
         // First, create a cart with one item
         Cart cart = new Cart();
         cart.setCustomerId("put-test-user");
+        testCustomerIds.add("put-test-user");
         Item item = new Item();
         item.setOfferId("offer-put-1");
         item.setAction(Item.Action.ADD);

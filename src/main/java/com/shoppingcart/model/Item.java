@@ -1,7 +1,5 @@
 package com.shoppingcart.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -21,7 +19,6 @@ public class Item {
     private List<Price> prices;
 
     @NotNull
-    @JsonProperty(access = Access.READ_ONLY)
     private Instant actionTimestamp;
 
     public enum Action {
