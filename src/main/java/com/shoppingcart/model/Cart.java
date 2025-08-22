@@ -6,9 +6,11 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.Data;
+import lombok.experimental.FieldNameConstants;
 
 @Document(collection = "carts")
 @Data
+@FieldNameConstants
 public class Cart {
     @Id
     private String id;

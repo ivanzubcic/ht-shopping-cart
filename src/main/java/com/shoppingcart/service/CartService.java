@@ -82,12 +82,14 @@ public class CartService {
      * @return the total number of items
      */
     public long countOffersSold(String offerId, String action, Instant from, Instant to) {
-        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() ->
+            cartRepository.findCartsByItemDynamic(offerId, action, from, to).stream()
                 .flatMap(cart -> cart.getItems().stream())
                 .filter(item -> item.getOfferId().equals(offerId))
                 .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                 .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
-                .count());
+                .count()
+        );
     }
 
     /**
@@ -100,14 +102,16 @@ public class CartService {
      * @return the number of distinct customers
      */
     public long countUniqueCustomers(String offerId, String action, Instant from, Instant to) {
-        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() ->
+            cartRepository.findCartsByItemDynamic(offerId, action, from, to).stream()
                 .flatMap(cart -> cart.getItems().stream()
                         .filter(item -> item.getOfferId().equals(offerId))
                         .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                         .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
                         .map(item -> cart.getCustomerId()))
                 .distinct()
-                .count());
+                .count()
+        );
     }
 
     /**
@@ -120,11 +124,13 @@ public class CartService {
      * @return the total number of items
      */
     public long countTotalItems(String offerId, String action, Instant from, Instant to) {
-        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() ->
+            cartRepository.findCartsByItemDynamic(offerId, action, from, to).stream()
                 .flatMap(cart -> cart.getItems().stream())
                 .filter(item -> item.getOfferId().equals(offerId))
                 .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                 .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
-                .count());
+                .count()
+        );
     }
 }

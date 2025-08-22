@@ -29,8 +29,8 @@ public class ResilienceUtils {
     private static Retry getRetry() {
         RetryConfig retryConfig = RetryConfig.custom()
                 .maxAttempts(resilienceProperties.getMaxAttempts())
-                .waitDuration(java.time.Duration.ofMillis(resilienceProperties.getInitialWaitMs()))
-                .intervalFunction(io.github.resilience4j.core.IntervalFunction.ofExponentialBackoff(resilienceProperties.getInitialWaitMs(), resilienceProperties.getMultiplier()))
+                .intervalFunction(io.github.resilience4j.core.IntervalFunction.
+                    ofExponentialBackoff(resilienceProperties.getInitialWaitMs(), resilienceProperties.getMultiplier()))
                 .build();
         RetryRegistry retryRegistry = RetryRegistry.of(retryConfig);
         return retryRegistry.retry(DEFAULT_RETRY);
