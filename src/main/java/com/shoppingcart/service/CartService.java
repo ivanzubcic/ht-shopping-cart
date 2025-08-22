@@ -3,6 +3,7 @@ package com.shoppingcart.service;
 import com.shoppingcart.model.Cart;
 import com.shoppingcart.model.Item;
 import com.shoppingcart.repository.CartRepository;
+import com.shoppingcart.util.ResilienceUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,10 +52,23 @@ public class CartService {
         return cartRepository.save(cart);
     }
 
+    /**
+     * Deletes a cart by customerId with fault tolerance.
+     * <p>
+     * This method uses both a circuit breaker and a retry pattern with exponential backoff.
+     * If a transient error occurs (e.g., database timeout), it will retry up to 3 times,
+     * waiting 500ms, then 1000ms, then 2000ms between attempts. If failures persist,
+     * the circuit breaker will open and further attempts will fail fast for a period of time.
+     *
+     * @param customerId the customer id of the cart to delete
+     * @throws RuntimeException if the delete operation fails after all retries or while the circuit breaker is open
+     */
     public void deleteCartByCustomerId(String customerId) {
-        Cart cart = cartRepository.findByCustomerId(customerId)
-            .orElseThrow(() -> new java.util.NoSuchElementException("Cart not found for customerId: " + customerId));
-        cartRepository.deleteById(cart.getId());
+        ResilienceUtils.runWithResilience(() -> {
+            Cart cart = cartRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new java.util.NoSuchElementException("Cart not found for customerId: " + customerId));
+            cartRepository.deleteById(cart.getId());
+        });
     }
 
     /**
@@ -68,12 +82,12 @@ public class CartService {
      * @return the total number of items
      */
     public long countOffersSold(String offerId, String action, Instant from, Instant to) {
-        return cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
                 .flatMap(cart -> cart.getItems().stream())
                 .filter(item -> item.getOfferId().equals(offerId))
                 .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                 .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
-                .count();
+                .count());
     }
 
     /**
@@ -86,14 +100,14 @@ public class CartService {
      * @return the number of distinct customers
      */
     public long countUniqueCustomers(String offerId, String action, Instant from, Instant to) {
-        return cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
                 .flatMap(cart -> cart.getItems().stream()
                         .filter(item -> item.getOfferId().equals(offerId))
                         .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                         .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
                         .map(item -> cart.getCustomerId()))
                 .distinct()
-                .count();
+                .count());
     }
 
     /**
@@ -106,11 +120,11 @@ public class CartService {
      * @return the total number of items
      */
     public long countTotalItems(String offerId, String action, Instant from, Instant to) {
-        return cartRepository.findAll().stream()
+        return ResilienceUtils.callWithResilience(() -> cartRepository.findAll().stream()
                 .flatMap(cart -> cart.getItems().stream())
                 .filter(item -> item.getOfferId().equals(offerId))
                 .filter(item -> item.getAction().name().equalsIgnoreCase(action))
                 .filter(item -> item.getActionTimestamp().isAfter(from) && item.getActionTimestamp().isBefore(to))
-                .count();
+                .count());
     }
 }

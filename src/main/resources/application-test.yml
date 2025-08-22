@@ -7,3 +7,8 @@ spring:
 logging:
   level:
     org.springframework: DEBUG
+
+resilience:
+  initial-wait-ms: 500
+  multiplier: 2.0
+  max-attempts: 3

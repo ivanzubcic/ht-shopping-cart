@@ -8,3 +8,7 @@ logging:
   level:
     org.springframework: INFO
 
+resilience:
+  initial-wait-ms: 500
+  multiplier: 2.0
+  max-attempts: 3
