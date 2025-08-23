@@ -7,18 +7,25 @@ import com.shoppingcart.model.Item;
 import com.shoppingcart.model.Price;
 import com.shoppingcart.repository.CartRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(classes = ShoppingCartApplication.class)
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Testcontainers
 public class CartControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
@@ -37,9 +46,25 @@ public class CartControllerIntegrationTest {
 
     private final Set<String> testCustomerIds = new HashSet<>();
 
+    @Container
+    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0.5");
+
+    @DynamicPropertySource
+    static void setProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+    }
+
+    @BeforeEach
+    void setUp() {
+        Cart cart = new Cart();
+        cart.setCustomerId("test-user");
+        cart.setItems(List.of()); // Add items as needed for your test
+        cartRepository.save(cart);
+    }
+
     @AfterEach
     void cleanUp() {
-        // Remove only carts inserted by this test class
+        // DELETE only carts inserted by this test class
         for (String customerId : testCustomerIds) {
             cartRepository.findByCustomerId(customerId).ifPresent(cart -> cartRepository.deleteById(cart.getId()));
         }
@@ -143,5 +168,58 @@ public class CartControllerIntegrationTest {
                 .andExpect(jsonPath("$.customerId").value("put-test-user"))
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items.length()").value(2));
+    }
+
+    @Test
+    void testStatisticsEndpoint() throws Exception {
+        // Insert carts with different offerId/action combinations
+        Cart cart1 = new Cart();
+        cart1.setCustomerId("stats-user-1");
+        Item item1 = new Item();
+        item1.setOfferId("OFFER1");
+        item1.setAction(Item.Action.ADD);
+        item1.setActionTimestamp(Instant.now().minusSeconds(3600));
+        cart1.setItems(List.of(item1));
+        cartRepository.save(cart1);
+
+        Cart cart2 = new Cart();
+        cart2.setCustomerId("stats-user-2");
+        Item item2 = new Item();
+        item2.setOfferId("OFFER1");
+        item2.setAction(Item.Action.ADD);
+        item2.setActionTimestamp(Instant.now().minusSeconds(1800));
+        cart2.setItems(List.of(item2));
+        cartRepository.save(cart2);
+
+        Cart cart3 = new Cart();
+        cart3.setCustomerId("stats-user-3");
+        Item item3 = new Item();
+        item3.setOfferId("OFFER2");
+        item3.setAction(Item.Action.DELETE);
+        item3.setActionTimestamp(Instant.now());
+        cart3.setItems(List.of(item3));
+        cartRepository.save(cart3);
+
+        // Test statistics for OFFER1/ADD
+        mockMvc.perform(get("/api/carts/statistics")
+                .param("offerId", "OFFER1")
+                .param("action", "ADD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offerId").value("OFFER1"))
+                .andExpect(jsonPath("$.action").value("ADD"))
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.uniqueCustomers").value(2))
+                .andExpect(jsonPath("$.totalItems").value(2));
+
+        // Test statistics for OFFER2/DELETE
+        mockMvc.perform(get("/api/carts/statistics")
+                .param("offerId", "OFFER2")
+                .param("action", "DELETE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.offerId").value("OFFER2"))
+                .andExpect(jsonPath("$.action").value("DELETE"))
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.uniqueCustomers").value(1))
+                .andExpect(jsonPath("$.totalItems").value(1));
     }
 }
