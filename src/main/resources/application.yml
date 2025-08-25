@@ -14,3 +14,5 @@ logging:
     name: logs/shopping-cart.log
     max-size: 10MB
     max-history: 7
+  pattern:
+    correlation: "[%X{traceId:-},%X{spanId:-}] "
